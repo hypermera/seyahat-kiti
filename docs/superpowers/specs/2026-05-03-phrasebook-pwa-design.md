@@ -157,24 +157,14 @@ Belgelerim'deki **hiçbir veri** GitHub'a, sunucuya, web'e gönderilmez. Tüm do
 4. Opsiyonel: kısa not / etiket ekle (örn. "Kart 5678 son rakam, son kull. 04/28")
 5. Kaydet → IndexedDB'ye yazılır
 
-## PIN & Face ID Koruması
+## App-içi kilit YOK (v5'te kaldırıldı)
 
-### İlk kurulum
-- Kullanıcı Belgelerim sekmesine ilk kez girdiğinde 4-6 haneli PIN belirler
-- PIN, salted SHA-256 hash olarak `localStorage`'a yazılır (düz değil)
-- Opsiyonel: "Face ID ile aç" → WebAuthn ile platform authenticator (Face ID/Touch ID) kayıt edilir
+İlk tasarımda PIN + Face ID düşünülmüştü, ancak kullanıcı tercihiyle (2026-05-03)
+app-içi kilit kaldırıldı. Belgeler doğrudan açılır.
 
-### Açış akışı
-1. Belgelerim sekmesine her girişte kilit ekranı
-2. Face ID enrolled ise: Face ID prompt otomatik açılır
-3. Başarısız veya cihaz desteklemiyorsa: PIN ekranı
-4. Doğru PIN/Face ID → Belgelerim açılır
-5. Sözlük sekmesine geçince Belgelerim kilitlenir, tekrar açışta yeniden auth
-
-### Güvenlik önlemleri
-- 3 yanlış PIN → 30 saniye bekleme süresi (artan: 5. yanlışta 5 dk, 7. yanlışta 1 saat)
-- PIN hash + salt cihazda; brute force'a karşı PBKDF2 (100k iteration) gibi hesaba göre yavaşlatılmış hash
-- Auto-lock: ekran kilitlenirse veya app arka plana gidip 1 dakikadan fazla kalırsa Belgelerim re-lock olur
+**Niye yine de güvenli:** iPhone'un kendi Face ID / passcode kilidi cihaz seviyesinde
+korumayı sağlar. Telefon kilitliyken hiçbir app açılamaz; PWA içinde ek bir kilit
+ekstra friction yaratıyordu, kazanım sınırlıydı.
 
 ## Veri Modeli (IndexedDB)
 
