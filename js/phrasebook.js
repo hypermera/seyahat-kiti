@@ -1,4 +1,4 @@
-// Sözlük (Phrasebook) — render + arama + favoriler + dil toggle.
+// Sözlük — render + arama + favoriler + dil toggle + kategori sıralama (edit mode).
 
 (function () {
   const LANG_LABELS = {
@@ -11,7 +11,9 @@
   const STATE = {
     activeLangs: new Set(["ko", "ja", "en"]),
     favorites: new Set(),
-    searchQuery: ""
+    searchQuery: "",
+    categoryOrder: [],   // array of slugs
+    editMode: false
   };
 
   function loadState() {
@@ -20,6 +22,8 @@
       if (Array.isArray(langs)) STATE.activeLangs = new Set(langs);
       const favs = JSON.parse(localStorage.getItem("phrasebook.favorites") || "null");
       if (Array.isArray(favs)) STATE.favorites = new Set(favs);
+      const order = JSON.parse(localStorage.getItem("phrasebook.categoryOrder") || "null");
+      if (Array.isArray(order)) STATE.categoryOrder = order;
     } catch (e) { /* ignore */ }
   }
 
@@ -29,12 +33,14 @@
   function saveFavorites() {
     localStorage.setItem("phrasebook.favorites", JSON.stringify([...STATE.favorites]));
   }
+  function saveOrder() {
+    localStorage.setItem("phrasebook.categoryOrder", JSON.stringify(STATE.categoryOrder));
+  }
 
   function el(tag, props = {}, children = []) {
     const node = document.createElement(tag);
     for (const k in props) {
       if (k === "class") node.className = props[k];
-      else if (k === "dataset") Object.assign(node.dataset, props[k]);
       else if (k.startsWith("on") && typeof props[k] === "function") {
         node.addEventListener(k.slice(2).toLowerCase(), props[k]);
       } else if (k === "html") node.innerHTML = props[k];
@@ -45,6 +51,37 @@
       node.appendChild(typeof c === "string" ? document.createTextNode(c) : c);
     }
     return node;
+  }
+
+  function getOrderedCategories() {
+    const all = CATEGORIES;
+    const saved = STATE.categoryOrder;
+    const seen = new Set();
+    const ordered = [];
+    for (const slug of saved) {
+      const c = all.find((x) => x.slug === slug);
+      if (c && !seen.has(slug)) { ordered.push(c); seen.add(slug); }
+    }
+    for (const c of all) {
+      if (!seen.has(c.slug)) { ordered.push(c); seen.add(c.slug); }
+    }
+    return ordered;
+  }
+
+  function persistOrder(orderedSlugs) {
+    STATE.categoryOrder = orderedSlugs;
+    saveOrder();
+  }
+
+  function moveCategory(slug, direction) {
+    const ordered = getOrderedCategories().map((c) => c.slug);
+    const i = ordered.indexOf(slug);
+    if (i < 0) return;
+    const j = i + direction;
+    if (j < 0 || j >= ordered.length) return;
+    [ordered[i], ordered[j]] = [ordered[j], ordered[i]];
+    persistOrder(ordered);
+    rerender();
   }
 
   function getCategoryById(slug) {
@@ -69,12 +106,14 @@
     );
   }
 
-  function renderLangToggles(container) {
-    const wrap = el("div", { class: "lang-toggles" });
+  function renderHeader(container) {
+    const header = el("header", { class: "header" });
+
+    const langs = el("div", { class: "lang-toggles" });
     for (const lang of LANGS) {
       const active = STATE.activeLangs.has(lang);
       const { flag, label } = LANG_LABELS[lang];
-      const btn = el("button", {
+      langs.appendChild(el("button", {
         class: "lang-btn" + (active ? " active" : ""),
         type: "button",
         onclick: () => {
@@ -83,14 +122,11 @@
           saveLangs();
           rerender();
         }
-      }, `${flag} ${label}`);
-      wrap.appendChild(btn);
+      }, `${flag} ${label}`));
     }
-    container.appendChild(wrap);
-  }
+    header.appendChild(langs);
 
-  function renderSearch(container) {
-    const input = el("input", {
+    const search = el("input", {
       type: "search",
       class: "search-input",
       placeholder: "🔍 Ara...",
@@ -102,23 +138,52 @@
         renderResultsArea();
       }
     });
-    container.appendChild(input);
+    header.appendChild(search);
+
+    container.appendChild(header);
   }
 
   function renderHomeGrid(container) {
-    const grid = el("div", { class: "category-grid" });
-    for (const cat of CATEGORIES) {
-      const isEmergency = cat.emergency;
-      const card = el("button", {
-        class: "category-card" + (isEmergency ? " emergency" : "") + (cat.slug === "favorites" ? " favorites" : ""),
+    const headerRow = el("div", { class: "home-actions" }, [
+      el("h2", { class: "home-title" }, "Kategoriler"),
+      el("button", {
+        class: "edit-toggle" + (STATE.editMode ? " active" : ""),
         type: "button",
-        onclick: () => openCategory(cat.slug)
+        onclick: () => { STATE.editMode = !STATE.editMode; rerender(); }
+      }, STATE.editMode ? "✓ Bitti" : "✏️ Düzenle")
+    ]);
+    container.appendChild(headerRow);
+
+    const ordered = getOrderedCategories();
+    const grid = el("div", { class: "category-grid" + (STATE.editMode ? " edit-mode" : "") });
+    ordered.forEach((cat, idx) => {
+      const card = el("div", {
+        class: "category-card" + (cat.emergency ? " emergency" : "") + (cat.slug === "favorites" ? " favorites" : ""),
+        onclick: STATE.editMode ? null : () => openCategory(cat.slug)
       }, [
         el("span", { class: "category-icon" }, cat.icon),
         el("span", { class: "category-name" }, cat.name)
       ]);
+      if (STATE.editMode) {
+        const ctrls = el("div", { class: "card-controls" });
+        if (idx > 0) {
+          ctrls.appendChild(el("button", {
+            class: "move-btn move-up",
+            type: "button",
+            onclick: (e) => { e.stopPropagation(); moveCategory(cat.slug, -1); }
+          }, "↑"));
+        }
+        if (idx < ordered.length - 1) {
+          ctrls.appendChild(el("button", {
+            class: "move-btn move-down",
+            type: "button",
+            onclick: (e) => { e.stopPropagation(); moveCategory(cat.slug, +1); }
+          }, "↓"));
+        }
+        card.appendChild(ctrls);
+      }
       grid.appendChild(card);
-    }
+    });
     container.appendChild(grid);
   }
 
@@ -131,11 +196,7 @@
     root.innerHTML = "";
 
     const header = el("div", { class: "category-header" }, [
-      el("button", {
-        class: "back-btn",
-        type: "button",
-        onclick: () => { window.location.hash = ""; rerender(); }
-      }, "←"),
+      el("button", { class: "back-btn", type: "button", onclick: () => { window.location.hash = ""; rerender(); } }, "←"),
       el("h2", { class: "category-title" }, `${cat.icon} ${cat.name}`)
     ]);
     root.appendChild(header);
@@ -156,7 +217,7 @@
     const isFav = STATE.favorites.has(p.id);
     const card = el("article", { class: "phrase-card" });
 
-    const top = el("div", { class: "phrase-top" }, [
+    card.appendChild(el("div", { class: "phrase-top" }, [
       el("div", { class: "phrase-tr" }, p.tr),
       el("button", {
         class: "fav-btn" + (isFav ? " active" : ""),
@@ -170,25 +231,17 @@
           rerender();
         }
       }, isFav ? "⭐" : "☆")
-    ]);
-    card.appendChild(top);
+    ]));
 
     const langWrap = el("div", { class: "phrase-langs" });
     for (const lang of LANGS) {
       if (!STATE.activeLangs.has(lang)) continue;
       const text = p[lang];
       if (!text) continue;
-      const row = el("div", { class: "phrase-row" }, [
+      langWrap.appendChild(el("div", { class: "phrase-row" }, [
         el("span", { class: "phrase-flag" }, LANG_LABELS[lang].flag),
-        el("span", { class: "phrase-text" }, text),
-        el("button", {
-          class: "speak-btn",
-          type: "button",
-          title: "Sesli oku",
-          onclick: () => TTS.speak(text, lang)
-        }, "🔊")
-      ]);
-      langWrap.appendChild(row);
+        el("span", { class: "phrase-text" }, text)
+      ]));
     }
     card.appendChild(langWrap);
     return card;
@@ -196,26 +249,24 @@
 
   function renderResultsArea() {
     const results = document.getElementById("phrasebook-results");
+    const home = document.getElementById("phrasebook-home");
     if (!results) return;
     if (STATE.searchQuery.trim()) {
       const matches = searchPhrases(STATE.searchQuery);
       results.innerHTML = "";
-      const head = el("h2", { class: "category-title" }, `Arama: "${STATE.searchQuery}" (${matches.length})`);
-      results.appendChild(head);
+      results.appendChild(el("h2", { class: "category-title" }, `Arama: "${STATE.searchQuery}" (${matches.length})`));
       if (matches.length === 0) {
         results.appendChild(el("p", { class: "empty" }, "Eşleşen kelime bulunamadı."));
-        return;
+      } else {
+        const cards = el("div", { class: "phrase-list" });
+        for (const p of matches) cards.appendChild(renderPhraseCard(p));
+        results.appendChild(cards);
       }
-      const cards = el("div", { class: "phrase-list" });
-      for (const p of matches) cards.appendChild(renderPhraseCard(p));
-      results.appendChild(cards);
-      const home = document.getElementById("phrasebook-home");
       if (home) home.style.display = "none";
       results.style.display = "block";
     } else {
       results.innerHTML = "";
       results.style.display = "none";
-      const home = document.getElementById("phrasebook-home");
       if (home) home.style.display = "block";
     }
   }
@@ -231,32 +282,9 @@
   }
 
   function rerender() {
-    const cat = getCurrentCategory();
-    const home = document.getElementById("phrasebook-home");
-    const results = document.getElementById("phrasebook-results");
-    if (cat) {
-      home.style.display = "none";
-      results.style.display = "block";
-      renderCategoryView(cat);
-    } else if (STATE.searchQuery.trim()) {
-      renderResultsArea();
-    } else {
-      home.style.display = "block";
-      results.style.display = "none";
-      // home grid stays static, just refresh in case favorites changed
-    }
-  }
-
-  function init() {
-    loadState();
-
     const root = document.getElementById("phrasebook-tab");
     root.innerHTML = "";
-
-    const header = el("header", { class: "header" });
-    renderLangToggles(header);
-    renderSearch(header);
-    root.appendChild(header);
+    renderHeader(root);
 
     const home = el("section", { id: "phrasebook-home" });
     renderHomeGrid(home);
@@ -265,8 +293,20 @@
     const results = el("section", { id: "phrasebook-results", style: "display:none" });
     root.appendChild(results);
 
-    window.addEventListener("hashchange", rerender);
+    const cat = getCurrentCategory();
+    if (cat) {
+      home.style.display = "none";
+      results.style.display = "block";
+      renderCategoryView(cat);
+    } else if (STATE.searchQuery.trim()) {
+      renderResultsArea();
+    }
+  }
+
+  function init() {
+    loadState();
     rerender();
+    window.addEventListener("hashchange", rerender);
   }
 
   window.Phrasebook = { init, rerender };

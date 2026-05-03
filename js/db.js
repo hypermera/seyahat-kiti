@@ -85,12 +85,13 @@
   }
 
   window.DB = {
-    async addDocument({ file, category, note }) {
+    async addDocument({ file, category, note, groupName }) {
       const blob = file;
       const thumbnailBlob = await generateThumbnail(blob);
       const doc = {
         id: uuid(),
         category,
+        groupName: groupName || null,
         fileName: file.name || `belge-${Date.now()}`,
         mimeType: file.type || "application/octet-stream",
         size: file.size || 0,
@@ -101,6 +102,35 @@
       };
       await withStore(STORE_DOCS, "readwrite", (s) => reqAsPromise(s.add(doc)));
       return doc;
+    },
+
+    async updateDocument(id, patch) {
+      const db = await openDB();
+      return new Promise((resolve, reject) => {
+        const tx = db.transaction(STORE_DOCS, "readwrite");
+        const store = tx.objectStore(STORE_DOCS);
+        const getReq = store.get(id);
+        getReq.onsuccess = () => {
+          const cur = getReq.result;
+          if (!cur) { resolve(null); return; }
+          Object.assign(cur, patch);
+          const putReq = store.put(cur);
+          putReq.onsuccess = () => resolve(cur);
+          putReq.onerror = () => reject(putReq.error);
+        };
+        getReq.onerror = () => reject(getReq.error);
+      });
+    },
+
+    async getGroupsForCategory(category) {
+      const docs = await this.getDocumentsByCategory(category);
+      const map = new Map();
+      for (const d of docs) {
+        if (!d.groupName) continue;
+        if (!map.has(d.groupName)) map.set(d.groupName, 0);
+        map.set(d.groupName, map.get(d.groupName) + 1);
+      }
+      return Array.from(map.entries()).map(([name, count]) => ({ name, count }));
     },
 
     async getDocumentsByCategory(category) {

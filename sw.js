@@ -2,7 +2,7 @@
 // IndexedDB'ye dokunmaz, sadece statik kod dosyalarını cache'ler.
 // Cümle/kod güncellendiğinde CACHE_VERSION'u arttır.
 
-const CACHE_VERSION = "v1";
+const CACHE_VERSION = "v2";
 const CACHE_NAME = `seyahat-kiti-${CACHE_VERSION}`;
 
 const ASSETS = [
@@ -13,7 +13,6 @@ const ASSETS = [
   "./js/app.js",
   "./js/data.js",
   "./js/db.js",
-  "./js/tts.js",
   "./js/auth.js",
   "./js/phrasebook.js",
   "./js/documents.js",
