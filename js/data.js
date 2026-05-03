@@ -140,6 +140,31 @@ window.PHRASES = [
   { id: "a_lot",       category: "numbers",    tr: "Çok",                        ko: "Manhi",                 ja: "Takusan",                 en: "A lot" }
 ];
 
+// Alışveriş listesi — yurt dışında alınacak ürünler (kullanıcı kişisel listesi başlangıç)
+// Her cihaz kendi check ve eklenen kalemlerini ayrı tutar (localStorage).
+window.SHOPPING_LIST = [
+  { id: "buzluk",            text: "Buzluk silikon",              emoji: "🧊" },
+  { id: "daiso_bag",         text: "Kore Daiso çanta",            emoji: "🧳" },
+  { id: "passport_case",     text: "Pasaport case",               emoji: "🛂" },
+  { id: "sunglasses",        text: "Güneş gözlüğü",               emoji: "🕶" },
+  { id: "tweezer",           text: "Cımbız",                      emoji: "✂️" },
+  { id: "7eleven_magnets",   text: "7-Eleven magnetleri",         emoji: "🧲" },
+  { id: "creative_magnets",  text: "Yaratıcı magnetler",          emoji: "🧲" },
+  { id: "nail_file",         text: "Törpü",                       emoji: "💅" },
+  { id: "7eleven_photo",     text: "7-Eleven fotoğraf gaste",     emoji: "📸" },
+  { id: "nail_clipper",      text: "Tırnak makası",               emoji: "✂️" },
+  { id: "mascara",           text: "Rimel",                       emoji: "💄" },
+  { id: "sunscreen",         text: "Güneş kremi",                 emoji: "🧴" },
+  { id: "makeup_box",        text: "Makyaj kutusu",               emoji: "👜" },
+  { id: "omurice_pan",       text: "Omurice tavası (dikdörtgen)", emoji: "🍳" },
+  { id: "canmake_eyeliner",  text: "Canmake eyeliner",            emoji: "👁" },
+  { id: "thermos",           text: "Termos",                      emoji: "🍵" },
+  { id: "acne_patch",        text: "Akne bandı",                  emoji: "🩹" },
+  { id: "lipstick",          text: "Ruj",                         emoji: "💋" },
+  { id: "watch",             text: "Saat",                        emoji: "⌚" },
+  { id: "nail_polish",       text: "Oje",                         emoji: "💅" }
+];
+
 window.DOC_CATEGORIES = [
   { slug: "passport",    name: "Pasaport",          icon: "🛂" },
   { slug: "id",          name: "Kimlik",            icon: "🪪" },

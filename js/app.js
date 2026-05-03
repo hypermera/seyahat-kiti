@@ -2,7 +2,8 @@
 
 (function () {
   const TAB_PHRASEBOOK = "phrasebook";
-  const TAB_DOCUMENTS = "documents";
+  const TAB_DOCUMENTS  = "documents";
+  const TAB_SHOPPING   = "shopping";
 
   function setActiveTab(tab) {
     document.querySelectorAll(".tab").forEach((t) => {
@@ -13,8 +14,11 @@
     });
     if (tab === TAB_DOCUMENTS) {
       Documents.init();
+    } else if (tab === TAB_SHOPPING) {
+      if (window.Shopping) Shopping.init();
+      const lock = document.getElementById("lock-screen");
+      if (lock) lock.classList.add("hidden");
     } else {
-      // Hide any open lock when leaving documents
       const lock = document.getElementById("lock-screen");
       if (lock) lock.classList.add("hidden");
       const viewer = document.getElementById("doc-viewer");
