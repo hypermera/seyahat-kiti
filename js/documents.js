@@ -1,10 +1,10 @@
 // Belgelerim — IndexedDB tabanlı yerel belge cüzdanı.
-// Gruplar (uçuş/otel slot'ları), kategori sıralama, PIN/Face ID kilidi.
-// Hiçbir veri sunucuya/web'e gönderilmez.
+// Gruplar (uçuş/otel slot'ları), kategori sıralama.
+// Hiçbir veri sunucuya/web'e gönderilmez (yine de cihaz Face ID/passcode'u
+// telefonun kendi koruması olarak iş görür).
 
 (function () {
   const STATE = {
-    unlocked: false,
     currentCategory: null,
     currentGroup: null,    // groupName when viewing inside a group
     pendingCategory: null,
@@ -75,105 +75,6 @@
     return DOC_CATEGORIES.find((c) => c.slug === slug);
   }
 
-  // ---------- Lock screen ----------
-
-  async function showLockScreen() {
-    const overlay = document.getElementById("lock-screen");
-    overlay.innerHTML = "";
-    overlay.classList.remove("hidden");
-
-    const isSet = await Auth.isPinSet();
-    if (!isSet) renderPinSetup(overlay);
-    else renderUnlock(overlay);
-  }
-
-  function hideLockScreen() {
-    const overlay = document.getElementById("lock-screen");
-    overlay.classList.add("hidden");
-    overlay.innerHTML = "";
-  }
-
-  function renderPinSetup(overlay) {
-    const card = el("div", { class: "lock-card" });
-    card.appendChild(el("h2", {}, "🔐 Belgelerim için PIN belirle"));
-    card.appendChild(el("p", { class: "lock-info" }, "Bu PIN sadece senin telefonunda saklanır. Belgelerim her açılışta bunu soracak. 4-6 rakam."));
-
-    const input1 = el("input", { type: "password", inputmode: "numeric", pattern: "[0-9]*", maxLength: 6, class: "pin-input", placeholder: "Yeni PIN" });
-    const input2 = el("input", { type: "password", inputmode: "numeric", pattern: "[0-9]*", maxLength: 6, class: "pin-input", placeholder: "Tekrar" });
-    const msg = el("p", { class: "lock-msg" });
-    const btn = el("button", { class: "primary-btn", type: "button", onclick: async () => {
-      const a = input1.value, b = input2.value;
-      if (!/^\d{4,6}$/.test(a)) { msg.textContent = "PIN 4-6 rakam olmalı."; return; }
-      if (a !== b) { msg.textContent = "PIN'ler eşleşmiyor."; return; }
-      await Auth.setupPin(a);
-      msg.textContent = "PIN kaydedildi.";
-
-      if (Auth.canUseWebAuthn()) {
-        msg.textContent = "PIN kaydedildi. Face ID/Touch ID kuruluyor...";
-        try {
-          await Auth.registerWebAuthn();
-          msg.textContent = "Face ID kaydedildi ✓";
-        } catch (e) {
-          msg.textContent = "Face ID atlandı, PIN ile devam ediyoruz.";
-        }
-      }
-      STATE.unlocked = true;
-      hideLockScreen();
-      renderHome();
-    }}, "PIN'i Kaydet");
-
-    card.appendChild(input1);
-    card.appendChild(input2);
-    card.appendChild(btn);
-    card.appendChild(msg);
-    overlay.appendChild(card);
-    setTimeout(() => input1.focus(), 50);
-  }
-
-  async function renderUnlock(overlay) {
-    const card = el("div", { class: "lock-card" });
-    card.appendChild(el("h2", {}, "🔐 Belgelerim"));
-    card.appendChild(el("p", { class: "lock-info" }, "Belgelerine erişmek için kimliğini doğrula."));
-
-    const msg = el("p", { class: "lock-msg" });
-    const pinInput = el("input", { type: "password", inputmode: "numeric", pattern: "[0-9]*", maxLength: 6, class: "pin-input", placeholder: "PIN" });
-
-    const submit = async () => {
-      const r = await Auth.verifyPin(pinInput.value);
-      if (r.locked) { msg.textContent = `Çok fazla yanlış. ${r.remaining} sn bekle.`; return; }
-      if (r.ok) {
-        STATE.unlocked = true;
-        hideLockScreen();
-        renderHome();
-      } else {
-        const remaining = await Auth.getLockoutSeconds();
-        msg.textContent = remaining > 0 ? `Yanlış PIN. ${remaining} sn bekle.` : "Yanlış PIN.";
-        pinInput.value = "";
-      }
-    };
-    pinInput.addEventListener("keypress", (e) => { if (e.key === "Enter") submit(); });
-
-    card.appendChild(pinInput);
-    card.appendChild(el("button", { class: "primary-btn", type: "button", onclick: submit }, "Aç"));
-
-    if (Auth.canUseWebAuthn() && (await Auth.hasWebAuthn())) {
-      card.appendChild(el("button", { class: "secondary-btn", type: "button", onclick: async () => {
-        msg.textContent = "Face ID isteniyor...";
-        try {
-          const ok = await Auth.authenticateWebAuthn();
-          if (ok) { STATE.unlocked = true; hideLockScreen(); renderHome(); }
-          else msg.textContent = "Face ID başarısız. PIN dene.";
-        } catch (e) {
-          msg.textContent = "Face ID iptal edildi. PIN dene.";
-        }
-      }}, "🔓 Face ID / Touch ID ile aç"));
-    }
-
-    card.appendChild(msg);
-    overlay.appendChild(card);
-    setTimeout(() => pinInput.focus(), 50);
-  }
-
   // ---------- Home (category list) ----------
 
   async function renderHome() {
@@ -188,11 +89,7 @@
         class: "edit-toggle" + (STATE.editMode ? " active" : ""),
         type: "button",
         onclick: () => { STATE.editMode = !STATE.editMode; renderHome(); }
-      }, STATE.editMode ? "✓ Bitti" : "✏️ Düzenle"),
-      el("button", { class: "lock-btn", type: "button", title: "Kilitle", onclick: () => {
-        STATE.unlocked = false;
-        showLockScreen();
-      }}, "🔒")
+      }, STATE.editMode ? "✓ Bitti" : "✏️ Düzenle")
     ]));
 
     root.appendChild(el("p", { class: "doc-intro" }, "Tüm belgeler sadece bu telefonda. Web'e veya bulut'a gönderilmez."));
@@ -516,25 +413,10 @@
 
   async function init() {
     loadOrder();
-    STATE.unlocked = false;
     STATE.currentCategory = null;
     STATE.currentGroup = null;
-    await showLockScreen();
+    await renderHome();
   }
 
-  function handleTabBackground() {
-    document.addEventListener("visibilitychange", () => {
-      if (document.hidden) {
-        STATE.unlocked = false;
-      } else {
-        const docsTab = document.getElementById("documents-tab");
-        if (docsTab && docsTab.classList.contains("active") && !STATE.unlocked) {
-          showLockScreen();
-        }
-      }
-    });
-  }
-  handleTabBackground();
-
-  window.Documents = { init, showLockScreen, renderHome };
+  window.Documents = { init, renderHome };
 })();

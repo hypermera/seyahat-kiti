@@ -13,18 +13,14 @@
     document.querySelectorAll(".tab-content").forEach((c) => {
       c.classList.toggle("active", c.id === `${tab}-tab`);
     });
-    const lock = document.getElementById("lock-screen");
     const viewer = document.getElementById("doc-viewer");
     if (tab === TAB_DOCUMENTS) {
       Documents.init();
     } else if (tab === TAB_PLACES) {
       if (window.Places) Places.init();
-      if (lock) lock.classList.add("hidden");
     } else if (tab === TAB_SHOPPING) {
       if (window.Shopping) Shopping.init();
-      if (lock) lock.classList.add("hidden");
     } else {
-      if (lock) lock.classList.add("hidden");
       if (viewer) viewer.classList.add("hidden");
     }
     try { localStorage.setItem("app.activeTab", tab); } catch (e) {}
