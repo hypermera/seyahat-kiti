@@ -76,13 +76,14 @@ input, textarea { font: inherit; }
   background: transparent;
   border: none;
   color: var(--text-muted);
-  padding: 14px 4px;
-  font-size: 14px;
+  padding: 12px 2px;
+  font-size: 12px;
   font-weight: 500;
   border-bottom: 3px solid transparent;
   min-height: var(--tap);
   transition: color 0.15s, border-color 0.15s;
   white-space: nowrap;
+  letter-spacing: -0.2px;
 }
 
 .tab.active {
@@ -569,6 +570,87 @@ input, textarea { font: inherit; }
   padding: 6px 12px;
   min-height: 34px;
   font-size: 13px;
+}
+
+.primary-btn.small {
+  padding: 6px 12px;
+  min-height: 34px;
+  font-size: 13px;
+}
+
+/* ---------- Yerler (places) ---------- */
+
+.type-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 8px 0 12px;
+}
+
+.type-chips .chip.active {
+  background: var(--primary);
+  color: var(--primary-text);
+  border-color: var(--primary);
+}
+
+.places-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.place-card {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--surface);
+  border-radius: var(--radius);
+  padding: 12px 12px;
+  box-shadow: var(--shadow);
+  min-height: 64px;
+}
+
+.place-emoji {
+  font-size: 28px;
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  background: var(--bg);
+  border-radius: 12px;
+}
+
+.place-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.place-name {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text);
+  line-height: 1.25;
+  word-break: break-word;
+}
+
+.place-meta {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+.place-comment {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 4px;
+  font-style: italic;
+}
+
+.place-go-btn {
+  flex-shrink: 0;
+  white-space: nowrap;
 }
 
 /* ---------- Documents tab ---------- */

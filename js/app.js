@@ -3,6 +3,7 @@
 (function () {
   const TAB_PHRASEBOOK = "phrasebook";
   const TAB_DOCUMENTS  = "documents";
+  const TAB_PLACES     = "places";
   const TAB_SHOPPING   = "shopping";
 
   function setActiveTab(tab) {
@@ -12,16 +13,18 @@
     document.querySelectorAll(".tab-content").forEach((c) => {
       c.classList.toggle("active", c.id === `${tab}-tab`);
     });
+    const lock = document.getElementById("lock-screen");
+    const viewer = document.getElementById("doc-viewer");
     if (tab === TAB_DOCUMENTS) {
       Documents.init();
+    } else if (tab === TAB_PLACES) {
+      if (window.Places) Places.init();
+      if (lock) lock.classList.add("hidden");
     } else if (tab === TAB_SHOPPING) {
       if (window.Shopping) Shopping.init();
-      const lock = document.getElementById("lock-screen");
       if (lock) lock.classList.add("hidden");
     } else {
-      const lock = document.getElementById("lock-screen");
       if (lock) lock.classList.add("hidden");
-      const viewer = document.getElementById("doc-viewer");
       if (viewer) viewer.classList.add("hidden");
     }
     try { localStorage.setItem("app.activeTab", tab); } catch (e) {}

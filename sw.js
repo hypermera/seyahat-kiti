@@ -2,7 +2,7 @@
 // IndexedDB'ye dokunmaz, sadece statik kod dosyalarını cache'ler.
 // Cümle/kod güncellendiğinde CACHE_VERSION'u arttır.
 
-const CACHE_VERSION = "v3";
+const CACHE_VERSION = "v4";
 const CACHE_NAME = `seyahat-kiti-${CACHE_VERSION}`;
 
 const ASSETS = [
@@ -12,10 +12,12 @@ const ASSETS = [
   "./manifest.json",
   "./js/app.js",
   "./js/data.js",
+  "./js/places.js",
   "./js/db.js",
   "./js/auth.js",
   "./js/phrasebook.js",
   "./js/documents.js",
+  "./js/places-ui.js",
   "./js/shopping.js",
   "./icons/icon-192.png",
   "./icons/icon-512.png",
