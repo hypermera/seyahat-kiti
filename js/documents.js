@@ -346,6 +346,11 @@
     document.addEventListener("visibilitychange", () => {
       if (document.hidden) {
         STATE.unlocked = false;
+      } else {
+        const docsTab = document.getElementById("documents-tab");
+        if (docsTab && docsTab.classList.contains("active") && !STATE.unlocked) {
+          showLockScreen();
+        }
       }
     });
   }
