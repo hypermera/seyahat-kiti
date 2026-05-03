@@ -2,7 +2,7 @@
 // IndexedDB'ye dokunmaz, sadece statik kod dosyalarını cache'ler.
 // Cümle/kod güncellendiğinde CACHE_VERSION'u arttır.
 
-const CACHE_VERSION = "v5";
+const CACHE_VERSION = "v6";
 const CACHE_NAME = `seyahat-kiti-${CACHE_VERSION}`;
 
 const ASSETS = [
@@ -40,6 +40,12 @@ self.addEventListener("activate", (event) => {
       Promise.all(keys.filter((k) => k !== CACHE_NAME).map((k) => caches.delete(k)))
     ).then(() => self.clients.claim())
   );
+});
+
+self.addEventListener("message", (event) => {
+  if (event.data && event.data.type === "SKIP_WAITING") {
+    self.skipWaiting();
+  }
 });
 
 self.addEventListener("fetch", (event) => {

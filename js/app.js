@@ -35,14 +35,82 @@
     }
   }
 
+  function showUpdateBanner(reg) {
+    if (document.getElementById("update-banner")) return;
+    const banner = document.createElement("div");
+    banner.id = "update-banner";
+    banner.className = "update-banner";
+
+    const text = document.createElement("span");
+    text.className = "update-text";
+    text.textContent = "Yeni sürüm hazır";
+
+    const btn = document.createElement("button");
+    btn.className = "update-btn";
+    btn.textContent = "↻ Yenile";
+    btn.onclick = () => {
+      btn.textContent = "Yenileniyor...";
+      btn.disabled = true;
+      const onControllerChange = () => {
+        navigator.serviceWorker.removeEventListener("controllerchange", onControllerChange);
+        window.location.reload();
+      };
+      if (reg.waiting) {
+        navigator.serviceWorker.addEventListener("controllerchange", onControllerChange);
+        reg.waiting.postMessage({ type: "SKIP_WAITING" });
+        // safety: reload after 1.5s if controllerchange doesn't fire
+        setTimeout(() => window.location.reload(), 1500);
+      } else {
+        window.location.reload();
+      }
+    };
+
+    const dismiss = document.createElement("button");
+    dismiss.className = "update-dismiss";
+    dismiss.title = "Kapat";
+    dismiss.textContent = "✕";
+    dismiss.onclick = () => banner.remove();
+
+    banner.appendChild(text);
+    banner.appendChild(btn);
+    banner.appendChild(dismiss);
+    document.body.appendChild(banner);
+  }
+
   function registerServiceWorker() {
-    if ("serviceWorker" in navigator) {
-      window.addEventListener("load", () => {
-        navigator.serviceWorker.register("./sw.js").catch((e) => {
-          console.warn("Service worker register hatası:", e);
+    if (!("serviceWorker" in navigator)) return;
+    window.addEventListener("load", async () => {
+      try {
+        const reg = await navigator.serviceWorker.register("./sw.js");
+
+        // Hâlihazırda waiting worker varsa banner göster
+        if (reg.waiting && navigator.serviceWorker.controller) {
+          showUpdateBanner(reg);
+        }
+
+        // Güncelleme bulunduğunda
+        reg.addEventListener("updatefound", () => {
+          const newWorker = reg.installing;
+          if (!newWorker) return;
+          newWorker.addEventListener("statechange", () => {
+            if (newWorker.state === "installed" && navigator.serviceWorker.controller) {
+              showUpdateBanner(reg);
+            }
+          });
         });
-      });
-    }
+
+        // Sayfa açılınca ve her saatte bir update kontrol
+        reg.update().catch(() => {});
+        setInterval(() => reg.update().catch(() => {}), 60 * 60 * 1000);
+
+        // Sayfa visible olduğunda da kontrol et (app'ten çıkıp geri gelince)
+        document.addEventListener("visibilitychange", () => {
+          if (!document.hidden) reg.update().catch(() => {});
+        });
+      } catch (e) {
+        console.warn("Service worker register hatası:", e);
+      }
+    });
   }
 
   function bindTabClicks() {
